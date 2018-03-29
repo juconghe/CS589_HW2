@@ -63,16 +63,7 @@ print('finished reading training data')
 print('testing_X data shape is ', X_test.shape)
 print('Testing_Y shape is ', Y_test.shape)
 
-X_kaggle = None
-Y_kaggle = None
-if 'X_kaggle.pickle' in os.listdir():
-    X_kaggle = pickle.load(open('X_kaggle.pickle','rb'))
-    Y_kaggle = pickle.load(open('Y_kaggle.pickle','rb'))
-else:
-    X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
-    pickle.dump(X_train, open('X_kaggle.pickle','wb'))
-    pickle.dump(Y_train, open('Y_kaggle.pickle','wb'))
-
+X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
 
 hyper_parameters = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 param_result = defaultdict(list)
@@ -97,6 +88,7 @@ print('best param', best_param)
 
 testing_score = []
 best_rf = None
+best_score = 0
 print('Getting testing score for all hyper parameters')
 for est in hyper_parameters:
     rf = RandomForestClassifier(n_estimators=est)
@@ -105,8 +97,9 @@ for est in hyper_parameters:
     score = accuracy_score(Y_test, y_pred)
     testing_score.append(score)
     print(est, score)
-    if est == best_param:
+    if score > best_score:
         best_rf = rf
+        best_score = score
 
 print('plotting result')
 plt_labels = ['Train', 'Test']
