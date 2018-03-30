@@ -4,12 +4,10 @@ import time
 import pickle
 import matplotlib.pyplot as plt
 
-from sklearn.ensemble import RandomForestClassifier
-from collections import defaultdict
-from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
+
 from Library.kaggle import *
-from sklearn.model_selection import GridSearchCV
+from keras.models import Sequential
+from keras.layers import Dense, Activation
 
 def read_data(data_path):
     temp_X = None
@@ -63,23 +61,15 @@ print('Testing_Y shape is ', Y_test.shape)
 X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
 
 
-tuned_parameters = {'n_estimators': [50, 100, 150, 200, 300],
-                    'max_depth': [3, 5, 10, None],
-                    }
+model = Sequential()
+model.add(Dense(64, input_dim=124, activation='sigmoid'))
+model.add(Dense(128,activation='sigmoid'))
+model.add(Dense(1, activation='softmax'))
+model.compile(optimizer='rmsprop',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
 
-clf = GridSearchCV(RandomForestClassifier(), tuned_parameters, cv=5, verbose=5, n_jobs=6)
-clf.fit(X_train, Y_train)
-
-pickle.dump(clf.cv_results_ ,open('cv_result.pickle', 'wb'))
-print('best params', clf.best_params_)
-print('best_est', clf.best_estimator_)
-print('best score', clf.best_score_)
-mean_train_score = clf.cv_results_['mean_train_score']
-mean_test_score = clf.cv_results_['mean_test_score']
-print('mean_train_scores', mean_train_score)
-print('mean_test_scores', mean_test_score)
-# plot_result('result', tuned_parameters['n_estimators'], mean_train_score, mean_test_score, 'n_estimators')
-
+model.fit(X_train, Y_train, epochs=100)
 #
 # kaggle_pred = best_rf.predict(X_kaggle)
 # kaggleize(kaggle_pred, 'kaggle.csv')

@@ -29,6 +29,21 @@ def read_data(data_path):
     return temp_X, temp_Y
 
 
+def read_kaggle(data_path):
+    temp_X = None
+    with open(data_path, 'r') as train_data:
+        for data in train_data:
+            raw = data.split(' ')
+            temp = np.zeros(124)
+            for feature in raw:
+                index, value = int(feature.split(':')[0]), float(feature.split(':')[1])
+                temp[index - 1] = value
+            if temp_X is None:
+                temp_X = np.array([temp])
+            else:
+                temp_X = np.append(temp_X, [temp], axis=0)
+    return temp_X
+
 data_dir = '/Users/Jucong/Documents/CS589/COMPSCI-589-HW2/Data/'
 train_file_name = 'HW2.train.txt'
 test_file_name = 'HW2.test.txt'
@@ -46,7 +61,7 @@ print('finished reading testing data')
 print('testing_X data shape is ', X_test.shape)
 print('Testing_Y shape is ', Y_test.shape)
 
-X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
+X_kaggle = read_kaggle(data_dir + kaggle_file_name)
 
 # hyper_parameters = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 # param_result = defaultdict(list)
@@ -70,7 +85,7 @@ X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
 # print('best param', best_param)
 
 testing_score = []
-best_rf = RandomForestClassifier(n_estimators=90)
+best_rf = RandomForestClassifier(n_estimators=60)
 best_rf.fit(X_train, Y_train)
 # best_score = 0
 # print('Getting testing score for all hyper parameters')
