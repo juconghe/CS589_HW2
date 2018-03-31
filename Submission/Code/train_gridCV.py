@@ -1,44 +1,28 @@
-import os
-import numpy as np
-import time
-import pickle
 import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
-from collections import defaultdict
-from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
-from Library.kaggle import *
 from sklearn.model_selection import GridSearchCV
+from sklearn.datasets import load_svmlight_file
+from Library.kaggle import *
 
-def read_data(data_path):
-    temp_X = None
-    temp_Y = np.array([])
-    with open(data_path, 'r') as train_data:
-        for data in train_data:
-            raw = data.split(' ')
-            temp_Y = np.append(temp_Y, raw[0])
-            temp = np.zeros(124)
-            for feature in raw[1:]:
-                index, value = int(feature.split(':')[0]), float(feature.split(':')[1])
-                temp[index - 1] = value
-            if temp_X is None:
-                temp_X = np.array([temp])
-            else:
-                temp_X = np.append(temp_X, [temp], axis=0)
-    return temp_X, temp_Y
+def read_data(FILE, multilabel=None):
+
+    if (multilabel): # for kaggle data
+        data = load_svmlight_file(FILE, multilabel=True)
+        return data[0].toarray()
+    # for training and testing data
+    data = load_svmlight_file(FILE)
+    return data[0].toarray(), data[1]
 
 
-def plot_result(name, x, y_train, y_test, param_name):
+def plot_result(name,title, x, y_train, param_name):
     print('plotting result')
-    plt_labels = ['Train', 'Test']
     plt.plot(x, y_train,'or-')
-    plt.plot(x, y_test,'sb-')
     plt.grid(True)
     plt.ylabel('Accuracy')
     plt.xlabel(param_name)
-    plt.title('Random Forest Hyper Parameter Tuning Result')
-    plt.legend(plt_labels)
+    plt.title(title)
     plt.savefig(name + '.png')
     plt.close()
 
@@ -60,26 +44,27 @@ print('testing_X data shape is ', X_test.shape)
 print('Testing_Y shape is ', Y_test.shape)
 
 
-X_kaggle, Y_kaggle = read_data(data_dir + kaggle_file_name)
+X_kaggle = read_data(data_dir + kaggle_file_name, multilabel=True)
 
 
-tuned_parameters = {'n_estimators': [50, 100, 150, 200, 300],
-                    'max_depth': [3, 5, 10, None],
+tuned_parameters = {'n_estimators': [50, 100, 150, 200, 250, 300],
+                    'max_features': ['sqrt', 'auto'],
                     }
 
-clf = GridSearchCV(RandomForestClassifier(), tuned_parameters, cv=5, verbose=5, n_jobs=6)
+clf = GridSearchCV(RandomForestClassifier(), tuned_parameters, cv=5, verbose=5, n_jobs=-1, return_train_score=True)
+
+mean_train_score = clf.cv_result['mean_train_score']
+mean_test_score = clf.cv_result['mean_test_score']
+
 clf.fit(X_train, Y_train)
+print('Getting the result of the CV')
+plot_result('result_sqrt', 'Random Forest Training Error With Sqrt Max Feature',tuned_parameters['n_estimators'],
+            mean_train_score[:6],'n_estimators')
+plot_result('result_auto', 'Random Forest Training Error With Auto Max Feature',tuned_parameters['n_estimators'],
+            mean_train_score[6:], 'n_estimators')
 
-pickle.dump(clf.cv_results_ ,open('cv_result.pickle', 'wb'))
-print('best params', clf.best_params_)
-print('best_est', clf.best_estimator_)
-print('best score', clf.best_score_)
-mean_train_score = clf.cv_results_['mean_train_score']
-mean_test_score = clf.cv_results_['mean_test_score']
-print('mean_train_scores', mean_train_score)
-print('mean_test_scores', mean_test_score)
-# plot_result('result', tuned_parameters['n_estimators'], mean_train_score, mean_test_score, 'n_estimators')
+y_pred = clf.predict(X_test)
+print(accuracy_score(Y_test, y_pred))
 
-#
-# kaggle_pred = best_rf.predict(X_kaggle)
-# kaggleize(kaggle_pred, 'kaggle.csv')
+kaggle_pred = clf.predict(X_kaggle)
+kaggleize(kaggle_pred, 'kaggle.csv')
